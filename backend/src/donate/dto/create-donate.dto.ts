@@ -1,6 +1,6 @@
 import { IsArray, IsNotEmpty, IsNumber, IsString } from "class-validator"
 
-export class CreatePostDto {
+export class CreateDonateDto {
     @IsString()
     @IsNotEmpty()
     titre: string

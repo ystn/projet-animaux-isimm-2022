@@ -4,7 +4,7 @@ import { User } from '@prisma/client';
 import { hash, verify } from 'argon2';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UserService } from 'src/user/user.service';
-import { SignupDto } from './dto';
+import { LoginDto, SignupDto } from './dto';
 
 @Injectable()
 export class AuthenticationService {
@@ -19,14 +19,18 @@ export class AuthenticationService {
         return null;
     }
 
-    async login(user: any) {
-        const payload = { email: user.email, sub: user.userId };
-        return { access_token: this.jwtService.sign(payload), };
+    async login(loginDto: LoginDto) {
+        const user = await this.validateUser(loginDto.email, loginDto.password);
+        const payload = { email: user.email, sub: user.id };
+        return { access_token: this.jwtService.sign(payload) };
     }
 
     async signup(signupDto: SignupDto) {
         const hashedPassword = await hash(signupDto.password);
         signupDto.password = hashedPassword;
-        this.userService.create(signupDto);
+        await this.userService.create(signupDto);
+        const user = await this.userService.findOne(signupDto.email);
+        const payload = { email: user.email, sub: user.id };
+        return { access_token: this.jwtService.sign(payload) };
     }
 }

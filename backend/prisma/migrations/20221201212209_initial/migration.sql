@@ -16,10 +16,30 @@ CREATE TABLE `User` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
+CREATE TABLE `CreditCard` (
+    `id` INTEGER NOT NULL,
+    `number` VARCHAR(191) NOT NULL,
+    `exp` DATETIME(3) NOT NULL,
+    `cvv` VARCHAR(191) NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `CreditCard_number_key`(`number`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `Follow` (
+    `followerId` INTEGER NOT NULL,
+    `followId` INTEGER NOT NULL,
+
+    PRIMARY KEY (`followerId`, `followId`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
 CREATE TABLE `Tag` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `nom` VARCHAR(191) NOT NULL,
-    `taggableId` INTEGER NOT NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -32,27 +52,10 @@ CREATE TABLE `Taggable` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `Group` (
-    `id` INTEGER NOT NULL,
-    `url` VARCHAR(191) NOT NULL,
-    `nom` VARCHAR(191) NOT NULL,
-    `description` VARCHAR(191) NOT NULL,
-    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    `updatedAt` DATETIME(3) NOT NULL,
-
-    UNIQUE INDEX `Group_id_key`(`id`),
-    UNIQUE INDEX `Group_url_key`(`url`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- CreateTable
-CREATE TABLE `UserGroup` (
+CREATE TABLE `TagTaggable` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `role` ENUM('ADMIN', 'MEMBER') NOT NULL DEFAULT 'MEMBER',
-    `blocked` BOOLEAN NOT NULL DEFAULT false,
-    `userId` INTEGER NOT NULL,
-    `groupId` INTEGER NOT NULL,
-    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    `updatedAt` DATETIME(3) NOT NULL,
+    `taggableId` INTEGER NOT NULL,
+    `tagId` INTEGER NOT NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -62,6 +65,7 @@ CREATE TABLE `Commentable` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
+    `userId` INTEGER NOT NULL DEFAULT 1,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -73,8 +77,8 @@ CREATE TABLE `Post` (
     `titre` VARCHAR(191) NOT NULL,
     `corps` VARCHAR(191) NOT NULL,
     `published` BOOLEAN NOT NULL DEFAULT true,
-    `userId` INTEGER NOT NULL,
-    `groupId` INTEGER NOT NULL,
+    `donatable` BOOLEAN NOT NULL DEFAULT false,
+    `amount` INTEGER NOT NULL,
 
     UNIQUE INDEX `Post_id_key`(`id`),
     UNIQUE INDEX `Post_taggableId_key`(`taggableId`)
@@ -84,7 +88,6 @@ CREATE TABLE `Post` (
 CREATE TABLE `Comment` (
     `id` INTEGER NOT NULL,
     `corps` VARCHAR(191) NOT NULL,
-    `userId` INTEGER NOT NULL,
     `commentedToId` INTEGER NOT NULL,
 
     UNIQUE INDEX `Comment_id_key`(`id`)
@@ -108,6 +111,7 @@ CREATE TABLE `Report` (
     `postId` INTEGER NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
+    UNIQUE INDEX `Report_userId_postId_key`(`userId`, `postId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -124,16 +128,22 @@ CREATE TABLE `Media` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- AddForeignKey
-ALTER TABLE `Tag` ADD CONSTRAINT `Tag_taggableId_fkey` FOREIGN KEY (`taggableId`) REFERENCES `Taggable`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `CreditCard` ADD CONSTRAINT `CreditCard_id_fkey` FOREIGN KEY (`id`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Group` ADD CONSTRAINT `Group_id_fkey` FOREIGN KEY (`id`) REFERENCES `Taggable`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `Follow` ADD CONSTRAINT `Follow_followerId_fkey` FOREIGN KEY (`followerId`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `UserGroup` ADD CONSTRAINT `UserGroup_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `Follow` ADD CONSTRAINT `Follow_followId_fkey` FOREIGN KEY (`followId`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `UserGroup` ADD CONSTRAINT `UserGroup_groupId_fkey` FOREIGN KEY (`groupId`) REFERENCES `Group`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `TagTaggable` ADD CONSTRAINT `TagTaggable_taggableId_fkey` FOREIGN KEY (`taggableId`) REFERENCES `Taggable`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `TagTaggable` ADD CONSTRAINT `TagTaggable_tagId_fkey` FOREIGN KEY (`tagId`) REFERENCES `Tag`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Commentable` ADD CONSTRAINT `Commentable_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Post` ADD CONSTRAINT `Post_id_fkey` FOREIGN KEY (`id`) REFERENCES `Commentable`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -142,16 +152,7 @@ ALTER TABLE `Post` ADD CONSTRAINT `Post_id_fkey` FOREIGN KEY (`id`) REFERENCES `
 ALTER TABLE `Post` ADD CONSTRAINT `Post_taggableId_fkey` FOREIGN KEY (`taggableId`) REFERENCES `Taggable`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Post` ADD CONSTRAINT `Post_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE `Post` ADD CONSTRAINT `Post_groupId_fkey` FOREIGN KEY (`groupId`) REFERENCES `Group`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE `Comment` ADD CONSTRAINT `Comment_id_fkey` FOREIGN KEY (`id`) REFERENCES `Commentable`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE `Comment` ADD CONSTRAINT `Comment_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Comment` ADD CONSTRAINT `Comment_commentedToId_fkey` FOREIGN KEY (`commentedToId`) REFERENCES `Commentable`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;

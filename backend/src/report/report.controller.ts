@@ -18,9 +18,9 @@ export class ReportController {
 
   @Get(':id')
   async findOne(@Param('id') id: string, @Query('type') type: string) {
-    if (type === "post") {
-      return await this.reportService.findForPost(+id)
-    }
+    if (type === "post")
+      return await this.reportService.findForPost(+id);
+      
     return await this.reportService.findOne(+id);
   }
 

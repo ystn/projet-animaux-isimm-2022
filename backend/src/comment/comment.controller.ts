@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { CommentService } from './comment.service';
+import { CreateFeedbackDto, FindDto } from './dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 
@@ -18,18 +19,21 @@ export class CommentController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string, @Query('type') type: string) {
-    // @Query('from') from?: string, @Query('for') forUser?: string, @Query('commentedTo') commentedTo?: string) {
-    // if (from)
+  async findMany(@Param('id') id: string, @Query() findDto: FindDto) {
+    const {type} = findDto
+    if (!type) return await this.commentService.findOne(+id);
     if (type === "from")
       return await this.commentService.findFromUser(+id);
-    // else if (forUser)
-    else if (type === "for")
-      return await this.commentService.findForUser(+id);
-    // else if (commentedTo)
-    else if (type === "commentedTo")
+    else if (type === "to")
+      return await this.commentService.findPerUser(+id);
+    else if (type === "post")
       return await this.commentService.findForCommentable(+id);
-    return await this.commentService.findOne(+id);
+    return {ok:false}
+  }
+
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    
   }
 
   @Patch(':id')
@@ -40,5 +44,16 @@ export class CommentController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.commentService.remove(+id);
+  }
+
+  @Post('feedback')
+  feedbackPost(@Body() createFeedbackDto: CreateFeedbackDto){
+    return this.commentService.addFeedback(createFeedbackDto);
+  }
+
+  @Delete('feedback/:postId/:userId')
+  removeFeedbackPost(@Param() removeFeedbackDto){
+    console.log(removeFeedbackDto)
+    return this.commentService.removeFeedback(removeFeedbackDto);
   }
 }
